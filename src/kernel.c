@@ -1,5 +1,5 @@
 #include "vga.h"
-#include "interrupts.h"
+#include "descriptors.h"
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -26,6 +26,11 @@ void kernel_main(void)
         idle_kernel_loop();
     }
     terminal_writestring("GDT Initialized successfully.\n");
+    terminal_writestring("Initializing IDT...\n");
+
+    initialize_idt();
+
+    terminal_writestring("IDT Initialized successfully\n");
 
     idle_kernel_loop();
 }

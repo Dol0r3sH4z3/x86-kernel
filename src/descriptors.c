@@ -1,10 +1,18 @@
-#include "interrupts.h"
+#include "descriptors.h"
 #include "vga.h"
 
+#include <stdbool.h>
+
 #define GDT_SIZE 3
+#define IDT_MAX_DESCRIPTORS 32
 
 uint8_t gdt_entries[GDT_SIZE * 8];
+__attribute__((aligned(0x10))) static idt_entry_t idt[256];
+
 extern void load_gdt(uint32_t gdt_ptr_addr);
+extern void *isr_stub_table[];
+
+static bool vectors[IDT_MAX_DESCRIPTORS];
 
 function_status_t encodeGdtEntry(uint8_t *target, struct GDT source)
 {
@@ -35,7 +43,7 @@ function_status_t encodeGdtEntry(uint8_t *target, struct GDT source)
     return FUNCTION_STATUS_SUCCESS;
 }
 
-function_status_t initialize_gdt(void)
+function_status_t initialize_gdt()
 {
     struct GDT source;
 
@@ -55,7 +63,7 @@ function_status_t initialize_gdt(void)
     source.base = 0;
     source.limit = 0xFFFFF;
     source.access_byte = 0x9A;
-    source.flags = 0x0C;
+    source.flags = 0xC;
     function_status_t kernel_code_descriptor_status = encodeGdtEntry(&gdt_entries[8], source);
     if (kernel_code_descriptor_status == FUNCTION_STATUS_ERROR)
     {
@@ -68,7 +76,7 @@ function_status_t initialize_gdt(void)
     source.base = 0;
     source.limit = 0xFFFFF;
     source.access_byte = 0x92;
-    source.flags = 0x0C;
+    source.flags = 0xC;
     function_status_t kernel_data_descriptor_status = encodeGdtEntry(&gdt_entries[16], source);
     if (kernel_data_descriptor_status == FUNCTION_STATUS_ERROR)
     {
@@ -85,4 +93,41 @@ function_status_t initialize_gdt(void)
     load_gdt((uint32_t)&gp);
 
     return FUNCTION_STATUS_SUCCESS;
+}
+
+void idt_set_descriptor(uint8_t vector, void *isr, uint8_t flags)
+{
+    idt_entry_t *descriptor = &idt[vector];
+
+    descriptor->isr_low = (uint32_t)isr & 0xFFFF;
+    descriptor->kernel_cs = 0x08;
+    descriptor->attributes = flags;
+    descriptor->isr_high = (uint32_t)isr >> 16;
+    descriptor->reserved = 0;
+};
+
+void initialize_idt()
+{
+    static idtr_t idtr;
+
+    idtr.base = (uintptr_t)&idt[0];
+    idtr.limit = (uint16_t)sizeof(idt) - 1;
+
+    for (uint8_t vector = 0; vector < 32; vector++)
+    {
+        idt_set_descriptor(vector, isr_stub_table[vector], 0x8E);
+        vectors[vector] = true;
+    }
+
+    __asm__ volatile("lidt %0" : : "m"(idtr));
+    __asm__ volatile("sti");
+}
+
+void exception_handler()
+{
+    terminal_error("Critical error.\n");
+    while (1)
+    {
+        __asm__ volatile("cli; hlt");
+    }
 }
