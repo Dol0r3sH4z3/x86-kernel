@@ -44,6 +44,4 @@ function_status_t initialize_gdt(void);
 void initialize_idt(void);
 void idt_set_descriptor(uint8_t vector, void *isr, uint8_t flags);
 
-__attribute__((noreturn)) void exception_handler(void);
-
 #endif

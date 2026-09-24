@@ -1,5 +1,7 @@
 #include "vga.h"
 #include "descriptors.h"
+#include "pic.h"
+#include "console.h"
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -25,12 +27,18 @@ void kernel_main(void)
         terminal_error("Error initializing GDT.\n");
         idle_kernel_loop();
     }
-    terminal_writestring("GDT Initialized successfully.\n");
-    terminal_writestring("Initializing IDT...\n");
+    terminal_writestring("GDT Initialized successfully.\n\n");
+    terminal_writestring("Remapping PIC...\n");
+    PIC_remap(0x20, 0x28);
 
+    terminal_writestring("Initializing IDT...\n");
     initialize_idt();
 
     terminal_writestring("IDT Initialized successfully\n");
+    __asm__ volatile("sti");
+
+    terminal_writestring("> ");
+    console_enable_input();
 
     idle_kernel_loop();
 }

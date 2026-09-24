@@ -8,7 +8,7 @@ ISODIR	= isodir
 C_DIR 	= src
 AS_DIR	= assembly
 
-C_OBJS	= $(BUILD)/kernel.o $(BUILD)/descriptors.o $(BUILD)/vga.o
+C_OBJS	= $(BUILD)/kernel.o $(BUILD)/descriptors.o $(BUILD)/vga.o $(BUILD)/handlers.o $(BUILD)/pic.o $(BUILD)/console.o
 OBJS	= $(BUILD)/boot.o $(BUILD)/tables_asm.o $(C_OBJS)
 KERNEL	= $(BUILD)/myos.bin
 ISO		= myos.iso

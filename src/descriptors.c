@@ -4,12 +4,13 @@
 #include <stdbool.h>
 
 #define GDT_SIZE 3
-#define IDT_MAX_DESCRIPTORS 32
+#define IDT_MAX_DESCRIPTORS 33
 
 uint8_t gdt_entries[GDT_SIZE * 8];
 __attribute__((aligned(0x10))) static idt_entry_t idt[256];
 
 extern void load_gdt(uint32_t gdt_ptr_addr);
+extern void irq_stub_33(void);
 extern void *isr_stub_table[];
 
 static bool vectors[IDT_MAX_DESCRIPTORS];
@@ -118,16 +119,7 @@ void initialize_idt()
         idt_set_descriptor(vector, isr_stub_table[vector], 0x8E);
         vectors[vector] = true;
     }
+    idt_set_descriptor(33, (void *)irq_stub_33, 0x8E);
 
     __asm__ volatile("lidt %0" : : "m"(idtr));
-    __asm__ volatile("sti");
-}
-
-void exception_handler()
-{
-    terminal_error("Critical error.\n");
-    while (1)
-    {
-        __asm__ volatile("cli; hlt");
-    }
 }

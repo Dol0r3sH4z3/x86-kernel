@@ -72,3 +72,14 @@ isr_stub_table:
     dd isr_stub_%+i
 %assign i i+1 
 %endrep
+
+extern keyboard_handler_main
+
+global irq_stub_33
+irq_stub_33:
+    pushad
+
+    call keyboard_handler_main
+
+    popad
+    iret

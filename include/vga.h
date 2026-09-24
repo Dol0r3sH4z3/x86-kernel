@@ -34,13 +34,15 @@ static inline uint16_t vga_entry(unsigned char uc, uint8_t color)
 	return (uint16_t)uc | (uint16_t)color << 8;
 }
 
-size_t strlen(const char *str);
+size_t strlen(const char *str, size_t maxlen);
 
 void terminal_initialize(void);
 void terminal_setcolor(uint8_t color);
 void terminal_putentryat(char c, uint8_t color, size_t, size_t y);
 void terminal_putchar(char c);
 void terminal_write(const char *data, size_t size);
+void terminal_scroll(void);
+void terminal_backspace(void);
 
 void terminal_writestring(const char *data);
 
