@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <stddef.h>
+#include <stdbool.h>
 
 enum vga_color
 {
@@ -35,6 +36,7 @@ static inline uint16_t vga_entry(unsigned char uc, uint8_t color)
 }
 
 size_t strlen(const char *str, size_t maxlen);
+bool strcmp(const char *src, const char *cmp);
 
 void terminal_initialize(void);
 void terminal_setcolor(uint8_t color);
@@ -48,5 +50,7 @@ void terminal_writestring(const char *data);
 
 void terminal_error(const char *data);
 void terminal_warn(const char *data);
+
+void execute_command(const char *cmd);
 
 #endif

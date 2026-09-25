@@ -15,6 +15,21 @@ size_t strlen(const char *str, size_t maxlen)
     return len;
 }
 
+bool strcmp(const char *src, const char *cmp)
+{
+    size_t i = 0;
+
+    while (src[i] == cmp[i])
+    {
+        if (src[i] == '\0')
+        {
+            return true;
+        }
+        i++;
+    }
+
+    return false;
+}
 size_t terminal_input_start_column = 2;
 
 size_t terminal_row;
@@ -58,9 +73,6 @@ void terminal_putchar(char c)
         {
             terminal_scroll();
             terminal_row = VGA_HEIGHT - 1;
-
-            if (is_interactive)
-                terminal_writestring("> ");
         }
         return;
     }
@@ -74,9 +86,6 @@ void terminal_putchar(char c)
             terminal_row = VGA_HEIGHT - 1;
         }
     }
-
-    if (is_interactive)
-        terminal_writestring("> ");
 }
 
 void terminal_write(const char *data, size_t size)
@@ -124,12 +133,6 @@ void terminal_scroll()
         const size_t index = last_row * VGA_WIDTH + x;
         terminal_buffer[index] = vga_entry(' ', terminal_color);
     }
-
-    if (is_interactive)
-    {
-        terminal_writestring("> ");
-        terminal_input_start_column = terminal_column;
-    }
 }
 
 void terminal_backspace(void)
@@ -157,4 +160,27 @@ void terminal_backspace(void)
     }
 
     terminal_putentryat(' ', terminal_color, terminal_column, terminal_row);
+}
+
+void execute_command(const char *cmd)
+{
+    terminal_putchar('\n');
+
+    if (strcmp(cmd, "help"))
+    {
+        terminal_writestring("Available commands: help, clear\n");
+    }
+    else if (strcmp(cmd, "clear"))
+    {
+        terminal_initialize();
+    }
+    else if (cmd[0] != '\0')
+    {
+        terminal_writestring("Unknown command: ");
+        terminal_writestring(cmd);
+        terminal_putchar('\n');
+    }
+
+    terminal_writestring("> ");
+    terminal_input_start_column = terminal_column;
 }

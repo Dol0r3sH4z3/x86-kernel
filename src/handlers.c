@@ -3,6 +3,11 @@
 #include "console.h"
 #include "vga.h"
 
+#define INPUT_BUFFER_SIZE 256
+
+char input_buffer[INPUT_BUFFER_SIZE];
+size_t input_buffer_idx = 0;
+
 void exception_handler()
 {
     terminal_error("Critical error.\n");
@@ -126,13 +131,29 @@ void keyboard_handler_main()
         {
             char ascii = kbdus[scancode];
 
-            if (ascii == '\b')
+            if (ascii == '\n')
             {
-                terminal_backspace();
+                input_buffer[input_buffer_idx] = '\0';
+                execute_command(input_buffer);
+                input_buffer_idx = 0;
+            }
+
+            else if (ascii == '\b')
+            {
+                extern size_t terminal_column;
+                extern size_t terminal_input_start_column;
+
+                if (terminal_column > terminal_input_start_column && input_buffer_idx > 0)
+                {
+                    input_buffer_idx--;
+                    terminal_backspace();
+                }
             }
 
             else if (ascii != 0)
             {
+                input_buffer[input_buffer_idx++] = ascii;
+
                 char str[2] = {ascii, '\0'};
                 terminal_writestring(str);
             }
