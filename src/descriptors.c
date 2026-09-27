@@ -44,7 +44,7 @@ function_status_t encodeGdtEntry(uint8_t *target, struct GDT source)
     return FUNCTION_STATUS_SUCCESS;
 }
 
-function_status_t initialize_gdt()
+function_status_t init_gdt()
 {
     struct GDT source;
 
@@ -59,8 +59,6 @@ function_status_t initialize_gdt()
         return FUNCTION_STATUS_ERROR;
     }
 
-    terminal_writestring("Initialized first descriptor.\n");
-
     source.base = 0;
     source.limit = 0xFFFFF;
     source.access_byte = 0x9A;
@@ -72,8 +70,6 @@ function_status_t initialize_gdt()
         return FUNCTION_STATUS_ERROR;
     }
 
-    terminal_writestring("Initialized second descriptor.\n");
-
     source.base = 0;
     source.limit = 0xFFFFF;
     source.access_byte = 0x92;
@@ -84,8 +80,6 @@ function_status_t initialize_gdt()
         terminal_error("Error initializing kernel data descriptor.\n");
         return FUNCTION_STATUS_ERROR;
     }
-
-    terminal_writestring("Initialized third descriptor.\n");
 
     static struct gdt_pointer gp;
     gp.limit = (GDT_SIZE * 8) - 1;
@@ -107,7 +101,7 @@ void idt_set_descriptor(uint8_t vector, void *isr, uint8_t flags)
     descriptor->reserved = 0;
 };
 
-void initialize_idt()
+void init_idt()
 {
     static idtr_t idtr;
 

@@ -39,9 +39,9 @@ typedef struct
 } __attribute__((packed)) idtr_t;
 
 function_status_t encodeGdtEntry(uint8_t *target, struct GDT source);
-function_status_t initialize_gdt(void);
+function_status_t init_gdt(void);
 
-void initialize_idt(void);
+void init_idt(void);
 void idt_set_descriptor(uint8_t vector, void *isr, uint8_t flags);
 
 #endif

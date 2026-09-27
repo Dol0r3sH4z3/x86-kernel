@@ -38,7 +38,7 @@ static inline uint16_t vga_entry(unsigned char uc, uint8_t color)
 size_t strlen(const char *str, size_t maxlen);
 bool strcmp(const char *src, const char *cmp);
 
-void terminal_initialize(void);
+void init_term(void);
 void terminal_setcolor(uint8_t color);
 void terminal_putentryat(char c, uint8_t color, size_t, size_t y);
 void terminal_putchar(char c);

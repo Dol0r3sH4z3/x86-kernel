@@ -37,7 +37,7 @@ size_t terminal_column;
 uint8_t terminal_color;
 uint16_t *terminal_buffer = (uint16_t *)VGA_MEMORY;
 
-void terminal_initialize(void)
+void init_term(void)
 {
     terminal_row = 0;
     terminal_column = 0;
@@ -172,7 +172,7 @@ void execute_command(const char *cmd)
     }
     else if (strcmp(cmd, "clear"))
     {
-        terminal_initialize();
+        init_term();
     }
     else if (cmd[0] != '\0')
     {

@@ -23,6 +23,11 @@ global _start:function (_start.end - _start)
 _start:
     mov esp, stack_top
 
+    cmp eax, 0x2BADB002
+    jne .hang
+
+    push ebx
+
     extern kernel_main
     call kernel_main
 
