@@ -55,6 +55,8 @@ static inline void initialize_memory(multiboot_info_t *mbd)
     multiboot_memory_map_t *mmap = (multiboot_memory_map_t *)mbd->mmap_addr;
     uint32_t mmap_end = mbd->mmap_addr + mbd->mmap_length;
 
+    uint32_t k_end = (uint32_t)&kernel_end;
+
     pmm_init();
     while ((uint32_t)mmap < mmap_end)
     {
@@ -65,17 +67,21 @@ static inline void initialize_memory(multiboot_info_t *mbd)
             uint32_t start_address = (uint32_t)mmap->addr;
             uint32_t length_bytes = (uint32_t)mmap->len;
 
-            pmm_set_region(start_address, length_bytes, PMM_REGION_FREE);
+            if (start_address < k_end && (start_address + length_bytes) > k_end)
+            {
+                uint32_t overlap = k_end - start_address;
+                start_address = k_end;
+                length_bytes -= overlap;
+            }
+
+            if (length_bytes > 0 && start_address >= 0x100000)
+            {
+                pmm_free_region(start_address, length_bytes);
+            }
         }
 
         mmap = (multiboot_memory_map_t *)((uint32_t)mmap + mmap->size + sizeof(mmap->size));
     }
-
-    uint32_t k_start = (uint32_t)&kernel_start;
-    uint32_t k_end = (uint32_t)&kernel_end;
-
-    pmm_set_region(k_start, k_end - k_start, PMM_REGION_LOCK);
-    pmm_set_region(0x0, 0x100000, PMM_REGION_LOCK);
 
     vmm_init();
 }

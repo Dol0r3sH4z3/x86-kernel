@@ -1,22 +1,15 @@
 #include "pmm.h"
 
-#define BITMAP_SIZE (1024 * 128)
-#define PMM_PAGE_SIZE 4096
+#define MAX_ORDER 11
 
-uint8_t pmm_bitmap[BITMAP_SIZE];
+struct buddy_node
+{
+    struct buddy_node *next, *prev;
+};
 
-static inline void bit_set(uint8_t *bit_arr, size_t idx)
-{
-    bit_arr[idx / 8] |= (1 << (idx % 8));
-};
-static inline void bit_clear(uint8_t *bit_arr, size_t idx)
-{
-    bit_arr[idx / 8] &= ~(1 << (idx % 8));
-};
-static inline int bit_test(uint8_t *bit_arr, size_t idx)
-{
-    return (bit_arr[idx / 8] & (1 << (idx % 8))) != 0;
-};
+typedef struct buddy_node buddy_node_t;
+buddy_node_t free_areas[MAX_ORDER];
+
 void *memset(void *dest, int ch, size_t count)
 {
     uint8_t *ptr = (uint8_t *)dest;
@@ -31,45 +24,115 @@ void *memset(void *dest, int ch, size_t count)
 
 void pmm_init(void)
 {
-    memset(pmm_bitmap, 0xFF, BITMAP_SIZE);
-};
-void pmm_set_region(uint32_t start_addr, uint32_t length, pmm_action_t action)
-{
-    if (length == 0)
-        return;
-
-    uint32_t end_addr = start_addr + length;
-
-    uint32_t page_start = (start_addr) / PMM_PAGE_SIZE;
-    uint32_t page_end = (end_addr + PMM_PAGE_SIZE - 1) / PMM_PAGE_SIZE;
-
-    for (uint32_t i = page_start; i < page_end; i++)
+    for (int i = 0; i < MAX_ORDER; i++)
     {
-        if (action == PMM_REGION_FREE)
+        free_areas[i].next = &free_areas[i];
+        free_areas[i].prev = &free_areas[i];
+    }
+};
+void pmm_free_region(uint32_t start_addr, uint32_t length)
+{
+    uint32_t end = (start_addr + length) & ~0xFFFu;
+    start_addr = (start_addr + 0xFFF) & ~0xFFFu;
+
+    while (start_addr < end)
+    {
+        uint32_t order = 0;
+        while (order < MAX_ORDER - 1 &&
+               (start_addr & ((4096u << (order + 1)) - 1)) == 0 &&
+               start_addr + (4096u << (order + 1)) <= end)
         {
-            bit_clear(pmm_bitmap, i);
+            order++;
         }
-        else
-        {
-            bit_set(pmm_bitmap, i);
-        }
+
+        buddy_node_t *node = (buddy_node_t *)start_addr;
+        node->next = free_areas[order].next;
+        node->prev = &free_areas[order];
+        free_areas[order].next->prev = node;
+        free_areas[order].next = node;
+
+        start_addr += 4096u << order;
     }
 };
 
 void *pmm_alloc_page(void)
 {
-    for (uint32_t i = 0; i < BITMAP_SIZE * 8; i++)
+    int current_order = 0;
+    while (current_order < MAX_ORDER && free_areas[current_order].next == &free_areas[current_order])
     {
-        if (!bit_test(pmm_bitmap, i))
-        {
-            bit_set(pmm_bitmap, i);
-            return (void *)(i * PMM_PAGE_SIZE);
-        }
+        current_order++;
     }
-    return NULL;
+
+    if (current_order == MAX_ORDER)
+    {
+        return NULL;
+    }
+
+    buddy_node_t *block = free_areas[current_order].next;
+
+    block->next->prev = block->prev;
+    block->prev->next = block->next;
+
+    while (current_order > 0)
+    {
+        current_order--;
+
+        uint32_t buddy_chunk_size = (1U << current_order) * 4096;
+
+        uint32_t buddy_addr = (uint32_t)block + buddy_chunk_size;
+        buddy_node_t *buddy = (buddy_node_t *)buddy_addr;
+
+        buddy->next = free_areas[current_order].next;
+        buddy->prev = &free_areas[current_order];
+        free_areas[current_order].next->prev = buddy;
+        free_areas[current_order].next = buddy;
+    }
+
+    return (void *)block;
 };
 void pmm_free_page(void *addr)
 {
-    uint32_t page_index = ((uint32_t)addr) / PMM_PAGE_SIZE;
-    bit_clear(pmm_bitmap, page_index);
-};
+    uint32_t block_addr = (uint32_t)addr;
+    uint32_t order = 0;
+    while (order < MAX_ORDER - 1)
+    {
+        uint32_t chunk_size = (1U << order) * 4096;
+
+        uint32_t buddy_addr = block_addr ^ chunk_size;
+
+        buddy_node_t *buddy = NULL;
+        buddy_node_t *curr = free_areas[order].next;
+
+        while (curr != &free_areas[order])
+        {
+            if ((uint32_t)curr == buddy_addr)
+            {
+                buddy = curr;
+                break;
+            }
+            curr = curr->next;
+        }
+
+        if (buddy == NULL)
+        {
+            break;
+        }
+
+        buddy->next->prev = buddy->prev;
+        buddy->prev->next = buddy->next;
+
+        if (buddy_addr < block_addr)
+        {
+            block_addr = buddy_addr;
+        }
+
+        order++;
+    }
+
+    buddy_node_t *final_node = (buddy_node_t *)block_addr;
+
+    final_node->next = free_areas[order].next;
+    final_node->prev = &free_areas[order];
+    free_areas[order].next->prev = final_node;
+    free_areas[order].next = final_node;
+}
