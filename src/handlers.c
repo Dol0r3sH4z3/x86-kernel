@@ -155,7 +155,7 @@ void keyboard_handler_main()
                 input_buffer[input_buffer_idx++] = ascii;
 
                 char str[2] = {ascii, '\0'};
-                terminal_writestring(str);
+                terminal_print(str);
             }
         }
     }

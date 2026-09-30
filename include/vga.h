@@ -46,7 +46,8 @@ void terminal_write(const char *data, size_t size);
 void terminal_scroll(void);
 void terminal_backspace(void);
 
-void terminal_writestring(const char *data);
+void terminal_print(const char *data);
+void terminal_print_hex(uint32_t data);
 
 void terminal_error(const char *data);
 void terminal_warn(const char *data);

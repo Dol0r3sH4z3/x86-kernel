@@ -35,7 +35,7 @@ size_t terminal_input_start_column = 2;
 size_t terminal_row;
 size_t terminal_column;
 uint8_t terminal_color;
-uint16_t *terminal_buffer = (uint16_t *)VGA_MEMORY;
+static uint16_t *terminal_buffer = (uint16_t *)VGA_MEMORY;
 
 void init_term(void)
 {
@@ -96,7 +96,7 @@ void terminal_write(const char *data, size_t size)
     }
 }
 
-void terminal_writestring(const char *data)
+void terminal_print(const char *data)
 {
     terminal_write(data, strlen(data, 4096));
 }
@@ -104,14 +104,14 @@ void terminal_writestring(const char *data)
 void terminal_error(const char *data)
 {
     terminal_setcolor(VGA_COLOR_RED);
-    terminal_writestring(data);
+    terminal_print(data);
     terminal_setcolor(VGA_COLOR_WHITE);
 }
 
 void terminal_warn(const char *data)
 {
     terminal_setcolor(VGA_COLOR_BROWN);
-    terminal_writestring(data);
+    terminal_print(data);
     terminal_setcolor(VGA_COLOR_WHITE);
 }
 
@@ -162,13 +162,26 @@ void terminal_backspace(void)
     terminal_putentryat(' ', terminal_color, terminal_column, terminal_row);
 }
 
+void terminal_print_hex(uint32_t data)
+{
+    static const char hex_digits[] = "0123456789ABCDEF";
+
+    terminal_print("0x");
+
+    for (int i = 28; i >= 0; i -= 4)
+    {
+        uint8_t nibble = (data >> i) & 0xF;
+        terminal_putchar(hex_digits[nibble]);
+    }
+}
+
 void execute_command(const char *cmd)
 {
     terminal_putchar('\n');
 
     if (strcmp(cmd, "help"))
     {
-        terminal_writestring("Available commands: help, clear\n");
+        terminal_print("Available commands: help, clear\n");
     }
     else if (strcmp(cmd, "clear"))
     {
@@ -176,11 +189,11 @@ void execute_command(const char *cmd)
     }
     else if (cmd[0] != '\0')
     {
-        terminal_writestring("Unknown command: ");
-        terminal_writestring(cmd);
+        terminal_print("Unknown command: ");
+        terminal_print(cmd);
         terminal_putchar('\n');
     }
 
-    terminal_writestring("> ");
+    terminal_print("> ");
     terminal_input_start_column = terminal_column;
 }

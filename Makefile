@@ -8,7 +8,7 @@ ISODIR	= isodir
 C_DIR 	= src
 AS_DIR	= assembly
 
-C_OBJS	= $(BUILD)/kernel.o $(BUILD)/descriptors.o $(BUILD)/vga.o $(BUILD)/handlers.o $(BUILD)/pic.o $(BUILD)/console.o $(BUILD)/pmm.o $(BUILD)/vmm.o
+C_OBJS	= $(BUILD)/kernel.o $(BUILD)/descriptors.o $(BUILD)/vga.o $(BUILD)/handlers.o $(BUILD)/pic.o $(BUILD)/console.o $(BUILD)/pmm.o $(BUILD)/vmm.o $(BUILD)/slab.o
 OBJS	= $(BUILD)/boot.o $(BUILD)/tables_asm.o $(BUILD)/virtual_memory.o $(C_OBJS)
 KERNEL	= $(BUILD)/myos.bin
 ISO		= myos.iso
@@ -36,7 +36,7 @@ iso: $(KERNEL)
 	grub-mkrescue -o $(ISO) $(ISODIR)
 
 run: iso
-	qemu-system-i386 -cdrom $(ISO)
+	qemu-system-i386 -cdrom $(ISO) -d int,cpu_reset -D qemu.log -no-reboot
 
 clean:
 	rm -rf $(BUILD) $(ISODIR) $(ISO)

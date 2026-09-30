@@ -1,5 +1,6 @@
 #include "vmm.h"
 #include "pmm.h"
+#include "vga.h"
 
 #define PAGE_PRESENT 0x1
 #define PAGE_WRITEABLE 0x2
@@ -22,6 +23,7 @@ void vmm_map_page(uint32_t virtual_address, uint32_t physical_addres, uint32_t f
 
         uint32_t *new_pt_virt = (uint32_t *)(0xFFC00000 + (pd_idx * 4096));
 
+        __asm__ volatile("invlpg (%0)" ::"r"(new_pt_virt) : "memory");
         memset(new_pt_virt, 0, 4096);
     }
 
@@ -52,7 +54,7 @@ void vmm_init()
     uint32_t *boot_dir_phys = (uint32_t *)pmm_alloc_page();
     for (uint32_t i = 0; i < 1024; i++)
     {
-        boot_dir_phys[i] = 0x00000002;
+        boot_dir_phys[i] = 0x2;
     }
 
     boot_dir_phys[1023] = ((uint32_t)boot_dir_phys) | PAGE_PRESENT | PAGE_WRITEABLE;
@@ -60,13 +62,15 @@ void vmm_init()
     uint32_t *kernel_pt_phys = (uint32_t *)pmm_alloc_page();
     for (uint32_t i = 0; i < 1024; i++)
     {
-        kernel_pt_phys[i] = 0x00000002;
+        kernel_pt_phys[i] = 0x2;
     }
 
     uint32_t k_end = (uint32_t)&kernel_end;
 
     uint32_t start_page = 0;
-    uint32_t end_page = (k_end + 4095) / 4096;
+    // uint32_t end_page = (k_end + 4095) / 4096;
+    uint32_t end_page = 1024;
+    terminal_print_hex(end_page);
 
     for (uint32_t i = start_page; i < end_page; i++)
     {

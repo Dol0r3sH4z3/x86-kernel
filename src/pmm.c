@@ -1,14 +1,9 @@
 #include "pmm.h"
+#include "types.h"
 
 #define MAX_ORDER 11
 
-struct buddy_node
-{
-    struct buddy_node *next, *prev;
-};
-
-typedef struct buddy_node buddy_node_t;
-buddy_node_t free_areas[MAX_ORDER];
+list_head_t free_areas[MAX_ORDER];
 
 void *memset(void *dest, int ch, size_t count)
 {
@@ -45,7 +40,7 @@ void pmm_free_region(uint32_t start_addr, uint32_t length)
             order++;
         }
 
-        buddy_node_t *node = (buddy_node_t *)start_addr;
+        list_head_t *node = (list_head_t *)start_addr;
         node->next = free_areas[order].next;
         node->prev = &free_areas[order];
         free_areas[order].next->prev = node;
@@ -68,7 +63,7 @@ void *pmm_alloc_page(void)
         return NULL;
     }
 
-    buddy_node_t *block = free_areas[current_order].next;
+    list_head_t *block = free_areas[current_order].next;
 
     block->next->prev = block->prev;
     block->prev->next = block->next;
@@ -80,7 +75,7 @@ void *pmm_alloc_page(void)
         uint32_t buddy_chunk_size = (1U << current_order) * 4096;
 
         uint32_t buddy_addr = (uint32_t)block + buddy_chunk_size;
-        buddy_node_t *buddy = (buddy_node_t *)buddy_addr;
+        list_head_t *buddy = (list_head_t *)buddy_addr;
 
         buddy->next = free_areas[current_order].next;
         buddy->prev = &free_areas[current_order];
@@ -100,8 +95,8 @@ void pmm_free_page(void *addr)
 
         uint32_t buddy_addr = block_addr ^ chunk_size;
 
-        buddy_node_t *buddy = NULL;
-        buddy_node_t *curr = free_areas[order].next;
+        list_head_t *buddy = NULL;
+        list_head_t *curr = free_areas[order].next;
 
         while (curr != &free_areas[order])
         {
@@ -129,7 +124,7 @@ void pmm_free_page(void *addr)
         order++;
     }
 
-    buddy_node_t *final_node = (buddy_node_t *)block_addr;
+    list_head_t *final_node = (list_head_t *)block_addr;
 
     final_node->next = free_areas[order].next;
     final_node->prev = &free_areas[order];

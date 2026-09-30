@@ -20,7 +20,7 @@ function_status_t encodeGdtEntry(uint8_t *target, struct GDT source)
     // Check the limit to make sure that it can be encoded
     if (source.limit > 0xFFFFF)
     {
-        terminal_writestring("GDT cannot encode limits larger than 0xFFFFF\n");
+        terminal_print("GDT cannot encode limits larger than 0xFFFFF\n");
         return FUNCTION_STATUS_ERROR;
     }
 

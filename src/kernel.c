@@ -4,6 +4,7 @@
 #include "console.h"
 #include "pmm.h"
 #include "vmm.h"
+#include "slab.h"
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -25,23 +26,23 @@ static inline void idle_kernel_loop(void)
 static inline void initialize_services(void)
 {
     init_term();
-    terminal_writestring("Kernel started.\n");
+    terminal_print("Kernel started.\n");
 
-    terminal_writestring("Initializing Global Descriptor Table...\n");
+    terminal_print("Initializing Global Descriptor Table...\n");
     function_status_t gdt_status = init_gdt();
     if (gdt_status == FUNCTION_STATUS_ERROR)
     {
         terminal_error("Error initializing GDT.\n");
         idle_kernel_loop();
     }
-    terminal_writestring("GDT Initialized successfully.\n\n");
-    terminal_writestring("Remapping PIC...\n");
+    terminal_print("GDT Initialized successfully.\n\n");
+    terminal_print("Remapping PIC...\n");
     PIC_remap(0x20, 0x28);
 
-    terminal_writestring("Initializing IDT...\n");
+    terminal_print("Initializing IDT...\n");
     init_idt();
 
-    terminal_writestring("IDT Initialized successfully\n");
+    terminal_print("IDT Initialized successfully\n");
 }
 
 static inline void initialize_memory(multiboot_info_t *mbd)
@@ -58,6 +59,7 @@ static inline void initialize_memory(multiboot_info_t *mbd)
     uint32_t k_end = (uint32_t)&kernel_end;
 
     pmm_init();
+    terminal_print("PMM Initialized.\n");
     while ((uint32_t)mmap < mmap_end)
     {
 
@@ -84,15 +86,64 @@ static inline void initialize_memory(multiboot_info_t *mbd)
     }
 
     vmm_init();
+    terminal_print("VMM Initialized.\n");
+    slab_init();
+    terminal_print("Slab initialized.\n");
+}
+
+static inline void test_slab_memory(void)
+{
+    void *a = kmalloc(40);
+    void *b = kmalloc(40);
+
+    terminal_print("a = ");
+    terminal_print_hex((uint32_t)a);
+    terminal_print("\n");
+
+    terminal_print("b = ");
+    terminal_print_hex((uint32_t)b);
+    terminal_print("\n");
+
+    kfree(a);
+
+    void *c = kmalloc(40);
+    terminal_print("c = ");
+    terminal_print_hex((uint32_t)c);
+    terminal_print("\n");
+
+    if (c == a)
+        terminal_print("OK: c == a, freelist works!\n");
+    else
+        terminal_print("FAIL: c != a\n");
+}
+
+static inline void test_vmm(void)
+{
+    void *a = pmm_alloc_page();
+    if (a == NULL)
+    {
+        terminal_print("Cannot initialize a.\n");
+        return;
+    }
+
+    terminal_print("A addr: ");
+    terminal_print_hex((uint32_t)a);
+    terminal_print("\n");
+
+    // static uint32_t
 }
 
 void kernel_main(multiboot_info_t *mbd)
 {
-    initialize_memory(mbd);
     initialize_services();
+    initialize_memory(mbd);
     __asm__ volatile("sti");
 
-    terminal_writestring("> ");
+    // test_slab_memory();
+    void *a = pmm_alloc_page();
+    // test_vmm();
+
+    terminal_print("> ");
     console_enable_input();
 
     idle_kernel_loop();
