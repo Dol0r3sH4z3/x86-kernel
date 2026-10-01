@@ -1,25 +1,11 @@
 #include "pmm.h"
 #include "vga.h"
 #include "types.h"
+#include "arch.h"
 
 #define MAX_ORDER 11
 
-#define KERNEL_VMA 0xC0000000u
-#define PMM_MAX_PHYS (64u * 1024 * 1024)
-
 list_head_t free_areas[MAX_ORDER];
-
-void *memset(void *dest, int ch, size_t count)
-{
-    uint8_t *ptr = (uint8_t *)dest;
-    while (count > 0)
-    {
-        *ptr = (uint8_t)ch;
-        ptr++;
-        count--;
-    }
-    return dest;
-}
 
 void pmm_init(void)
 {
@@ -32,8 +18,8 @@ void pmm_init(void)
 void pmm_free_region(uint32_t start_addr, uint32_t length)
 {
     uint32_t end = (start_addr + length) & ~0xFFFu;
-    if (end > PMM_MAX_PHYS)
-        end = PMM_MAX_PHYS;
+    if (end > ARCH_DIRECT_MAP_LIMIT)
+        end = ARCH_DIRECT_MAP_LIMIT;
     start_addr = (start_addr + 0xFFF) & ~0xFFFu;
 
     while (start_addr < end)
@@ -46,7 +32,7 @@ void pmm_free_region(uint32_t start_addr, uint32_t length)
             order++;
         }
 
-        list_head_t *node = (list_head_t *)(start_addr + KERNEL_VMA);
+        list_head_t *node = (list_head_t *)arch_phys_to_virt(start_addr);
         node->next = free_areas[order].next;
         node->prev = &free_areas[order];
         free_areas[order].next->prev = node;
@@ -90,11 +76,11 @@ void *pmm_alloc_page(void)
         free_areas[current_order].next = buddy;
     }
 
-    return (void *)((uint32_t)block - KERNEL_VMA);
+    return (void *)((uintptr_t)arch_virt_to_phys(block));
 };
 void pmm_free_page(void *addr)
 {
-    uint32_t block_addr = (uint32_t)addr + KERNEL_VMA;
+    uint32_t block_addr = (uintptr_t)arch_phys_to_virt((uint8_t)addr);
     uint32_t order = 0;
     while (order < MAX_ORDER - 1)
     {

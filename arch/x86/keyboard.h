@@ -1,5 +1,5 @@
-#ifndef HANDLERS_H
-#define HANDLERS_H
+#ifndef KEYBOARD_H
+#define KEYBOARD_H
 
 #include <stdint.h>
 
@@ -10,7 +10,6 @@ static inline uint8_t inb(uint16_t port)
     return ret;
 }
 
-__attribute__((noreturn)) void exception_handler(void);
 void keyboard_handler_main(void);
 
 #endif

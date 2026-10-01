@@ -3,8 +3,9 @@
 #include "pic.h"
 #include "console.h"
 #include "pmm.h"
-#include "vmm.h"
+#include "paging.h"
 #include "slab.h"
+#include "arch.h"
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -19,7 +20,7 @@ static inline void idle_kernel_loop(void)
 {
     while (1)
     {
-        __asm__ volatile("hlt");
+        arch_idle();
     }
 }
 
@@ -47,18 +48,18 @@ static inline void initialize_services(void)
 
 static inline void initialize_memory(multiboot_info_t *mbd_phys)
 {
-    multiboot_info_t *mbd = p2v((uint32_t)mbd_phys);
+    multiboot_info_t *mbd = arch_phys_to_virt((uint32_t)mbd_phys);
 
     if (!(mbd->flags & (1 << 6)))
     {
         terminal_error("[ERROR] GRUB didn't provide memory map.\n");
-        __asm__ volatile("cli; hlt");
+        arch_halt();
     }
 
-    multiboot_memory_map_t *mmap = (multiboot_memory_map_t *)p2v(mbd->mmap_addr);
+    multiboot_memory_map_t *mmap = (multiboot_memory_map_t *)arch_phys_to_virt(mbd->mmap_addr);
     uint32_t mmap_end = (uint32_t)mmap + mbd->mmap_length;
 
-    uint32_t k_end = v2p(&_kernel_end);
+    uint32_t k_end = arch_virt_to_phys(&_kernel_end);
 
     pmm_init();
     terminal_print("PMM Initialized.\n");
@@ -97,7 +98,7 @@ void kernel_main(multiboot_info_t *mbd)
     vmm_init();
     initialize_services();
     initialize_memory(mbd);
-    __asm__ volatile("sti");
+    arch_enable_interrupts();
 
     terminal_print("> ");
     console_enable_input();

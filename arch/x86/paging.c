@@ -1,12 +1,15 @@
-#include "vmm.h"
+#include "paging.h"
 #include "pmm.h"
 #include "vga.h"
+#include "arch.h"
 
 #define PAGE_PRESENT 0x1
 #define PAGE_WRITEABLE 0x2
 
 #define DIRECT_MAP_MB 64
 #define NUM_PTS (DIRECT_MAP_MB / 4)
+
+#define KERNEL_VMA 0xC0000000
 
 static uint32_t *const current_page_directory = (uint32_t *)0xFFFFF000;
 
@@ -26,7 +29,10 @@ void vmm_map_page(uint32_t virtual_address, uint32_t physical_addres, uint32_t f
         uint32_t *new_pt_virt = (uint32_t *)(0xFFC00000 + (pd_idx * 4096));
 
         __asm__ volatile("invlpg (%0)" ::"r"(new_pt_virt) : "memory");
-        memset(new_pt_virt, 0, 4096);
+        for (size_t i = 0; i < 1024; i++)
+        {
+            new_pt_virt[i] = 0x0;
+        }
     }
 
     uint32_t *page_table = (uint32_t *)(0xFFC00000 + (pd_idx * 4096));
@@ -61,10 +67,13 @@ void vmm_init()
             kernel_pts[t][i] = phys | PAGE_WRITEABLE | PAGE_PRESENT;
         }
 
-        kernel_dir[768 + t] = v2p(kernel_pts[t]) | PAGE_PRESENT | PAGE_WRITEABLE;
+        kernel_dir[768 + t] = arch_virt_to_phys(kernel_pts[t]) | PAGE_PRESENT | PAGE_WRITEABLE;
     }
 
-    kernel_dir[1023] = v2p(kernel_dir) | PAGE_PRESENT | PAGE_WRITEABLE;
+    kernel_dir[1023] = arch_virt_to_phys(kernel_dir) | PAGE_PRESENT | PAGE_WRITEABLE;
 
-    __asm__ volatile("mov %0, %%cr3" ::"r"(v2p(kernel_dir)) : "memory");
+    __asm__ volatile("mov %0, %%cr3" ::"r"(arch_virt_to_phys(kernel_dir)) : "memory");
 }
+
+void *arch_phys_to_virt(phys_addr_t p) { return (void *)((uintptr_t)p + KERNEL_VMA); }
+phys_addr_t arch_virt_to_phys(void *v) { return (phys_addr_t)((uintptr_t)v - KERNEL_VMA); }

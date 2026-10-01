@@ -1,3 +1,4 @@
 myos.iso
 isodir/
 build/
+qemu.log

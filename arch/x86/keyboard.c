@@ -1,4 +1,4 @@
-#include "handlers.h"
+#include "keyboard.h"
 #include "pic.h"
 #include "console.h"
 #include "vga.h"
@@ -7,15 +7,6 @@
 
 char input_buffer[INPUT_BUFFER_SIZE];
 size_t input_buffer_idx = 0;
-
-void exception_handler()
-{
-    terminal_error("Critical error.\n");
-    while (1)
-    {
-        __asm__ volatile("cli; hlt");
-    }
-}
 
 const char kbdus[128] = {
     0,
