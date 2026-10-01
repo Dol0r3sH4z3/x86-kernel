@@ -1,6 +1,6 @@
 #include "keyboard.h"
 #include "pic.h"
-#include "console.h"
+#include <kernel/console.h>
 #include "vga.h"
 
 #define INPUT_BUFFER_SIZE 256

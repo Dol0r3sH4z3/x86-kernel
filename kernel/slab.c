@@ -1,6 +1,6 @@
-#include "slab.h"
-#include "pmm.h"
-#include "vmm.h"
+#include <kernel/slab.h>
+#include <kernel/pmm.h>
+#include "paging.h"
 #include "vga.h"
 
 #define SLAB_LEVELS 7
@@ -34,7 +34,7 @@ Slab *slab_new(int idx)
     }
     uint32_t virt_address = slab_next_virt;
     slab_next_virt += 4096;
-    vmm_map_page(virt_address, phys_page, 0x2);
+    vmm_map_page(virt_address, (uint32_t)phys_page, 0x2);
 
     uint8_t *page = (uint8_t *)virt_address;
 

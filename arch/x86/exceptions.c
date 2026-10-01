@@ -1,4 +1,5 @@
 #include "exceptions.h"
+#include "vga.h"
 
 void exception_handler()
 {

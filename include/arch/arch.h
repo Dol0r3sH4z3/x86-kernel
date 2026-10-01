@@ -15,4 +15,6 @@ void arch_halt(void);
 void arch_idle(void);
 void arch_enable_interrupts(void);
 
+void arch_memory_init(void);
+
 #endif

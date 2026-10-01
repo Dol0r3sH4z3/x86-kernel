@@ -29,7 +29,7 @@ section .multiboot.text progbits alloc exec nowrite align=16
 global _start
 extern _kernel_start
 extern _kernel_end
-extern kernel_main
+extern arch_main
 
 _start:
     mov edi, V2P(boot_page_table1)
@@ -80,7 +80,7 @@ higher_half:
 
     push ebx
 
-    call kernel_main
+    call arch_main
 
     cli
 .hang:
