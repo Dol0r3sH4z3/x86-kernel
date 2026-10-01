@@ -5,11 +5,13 @@
 #define PAGE_PRESENT 0x1
 #define PAGE_WRITEABLE 0x2
 
+#define DIRECT_MAP_MB 64
+#define NUM_PTS (DIRECT_MAP_MB / 4)
+
 static uint32_t *const current_page_directory = (uint32_t *)0xFFFFF000;
 
-extern uint32_t kernel_end;
-
-extern void enable_paging(uint32_t *directory);
+static uint32_t kernel_dir[1024] __attribute__((aligned(4096)));
+static uint32_t kernel_pts[NUM_PTS][1024] __attribute__((aligned(4096)));
 
 void vmm_map_page(uint32_t virtual_address, uint32_t physical_addres, uint32_t flags)
 {
@@ -51,33 +53,18 @@ void vmm_unmap_page(uint32_t virtual_address)
 
 void vmm_init()
 {
-    uint32_t *boot_dir_phys = (uint32_t *)pmm_alloc_page();
-    for (uint32_t i = 0; i < 1024; i++)
+    for (uint32_t t = 0; t < NUM_PTS; t++)
     {
-        boot_dir_phys[i] = 0x2;
+        for (uint32_t i = 0; i < 1024; i++)
+        {
+            uint32_t phys = (t * 1024 + i) * 4096;
+            kernel_pts[t][i] = phys | PAGE_WRITEABLE | PAGE_PRESENT;
+        }
+
+        kernel_dir[768 + t] = v2p(kernel_pts[t]) | PAGE_PRESENT | PAGE_WRITEABLE;
     }
 
-    boot_dir_phys[1023] = ((uint32_t)boot_dir_phys) | PAGE_PRESENT | PAGE_WRITEABLE;
+    kernel_dir[1023] = v2p(kernel_dir) | PAGE_PRESENT | PAGE_WRITEABLE;
 
-    uint32_t *kernel_pt_phys = (uint32_t *)pmm_alloc_page();
-    for (uint32_t i = 0; i < 1024; i++)
-    {
-        kernel_pt_phys[i] = 0x2;
-    }
-
-    uint32_t k_end = (uint32_t)&kernel_end;
-
-    uint32_t start_page = 0;
-    // uint32_t end_page = (k_end + 4095) / 4096;
-    uint32_t end_page = 1024;
-    terminal_print_hex(end_page);
-
-    for (uint32_t i = start_page; i < end_page; i++)
-    {
-        kernel_pt_phys[i] = (i * 4096) | PAGE_PRESENT | PAGE_WRITEABLE;
-    }
-
-    boot_dir_phys[0] = ((uint32_t)kernel_pt_phys) | PAGE_PRESENT | PAGE_WRITEABLE;
-
-    enable_paging(boot_dir_phys);
+    __asm__ volatile("mov %0, %%cr3" ::"r"(v2p(kernel_dir)) : "memory");
 }

@@ -12,8 +12,8 @@
 
 #define MULTIBOOT_MEMORY_AVAILABLE 1
 
-extern uint32_t kernel_start;
-extern uint32_t kernel_end;
+extern uint32_t _kernel_start;
+extern uint32_t _kernel_end;
 
 static inline void idle_kernel_loop(void)
 {
@@ -45,18 +45,20 @@ static inline void initialize_services(void)
     terminal_print("IDT Initialized successfully\n");
 }
 
-static inline void initialize_memory(multiboot_info_t *mbd)
+static inline void initialize_memory(multiboot_info_t *mbd_phys)
 {
+    multiboot_info_t *mbd = p2v((uint32_t)mbd_phys);
+
     if (!(mbd->flags & (1 << 6)))
     {
         terminal_error("[ERROR] GRUB didn't provide memory map.\n");
         __asm__ volatile("cli; hlt");
     }
 
-    multiboot_memory_map_t *mmap = (multiboot_memory_map_t *)mbd->mmap_addr;
-    uint32_t mmap_end = mbd->mmap_addr + mbd->mmap_length;
+    multiboot_memory_map_t *mmap = (multiboot_memory_map_t *)p2v(mbd->mmap_addr);
+    uint32_t mmap_end = (uint32_t)mmap + mbd->mmap_length;
 
-    uint32_t k_end = (uint32_t)&kernel_end;
+    uint32_t k_end = v2p(&_kernel_end);
 
     pmm_init();
     terminal_print("PMM Initialized.\n");
@@ -85,63 +87,17 @@ static inline void initialize_memory(multiboot_info_t *mbd)
         mmap = (multiboot_memory_map_t *)((uint32_t)mmap + mmap->size + sizeof(mmap->size));
     }
 
-    vmm_init();
     terminal_print("VMM Initialized.\n");
     slab_init();
     terminal_print("Slab initialized.\n");
 }
 
-static inline void test_slab_memory(void)
-{
-    void *a = kmalloc(40);
-    void *b = kmalloc(40);
-
-    terminal_print("a = ");
-    terminal_print_hex((uint32_t)a);
-    terminal_print("\n");
-
-    terminal_print("b = ");
-    terminal_print_hex((uint32_t)b);
-    terminal_print("\n");
-
-    kfree(a);
-
-    void *c = kmalloc(40);
-    terminal_print("c = ");
-    terminal_print_hex((uint32_t)c);
-    terminal_print("\n");
-
-    if (c == a)
-        terminal_print("OK: c == a, freelist works!\n");
-    else
-        terminal_print("FAIL: c != a\n");
-}
-
-static inline void test_vmm(void)
-{
-    void *a = pmm_alloc_page();
-    if (a == NULL)
-    {
-        terminal_print("Cannot initialize a.\n");
-        return;
-    }
-
-    terminal_print("A addr: ");
-    terminal_print_hex((uint32_t)a);
-    terminal_print("\n");
-
-    // static uint32_t
-}
-
 void kernel_main(multiboot_info_t *mbd)
 {
+    vmm_init();
     initialize_services();
     initialize_memory(mbd);
     __asm__ volatile("sti");
-
-    // test_slab_memory();
-    void *a = pmm_alloc_page();
-    // test_vmm();
 
     terminal_print("> ");
     console_enable_input();

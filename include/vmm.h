@@ -1,6 +1,8 @@
 #ifndef VMM_H
 #define VMM_H
 
+#define KERNEL_VMA 0xC0000000
+
 #include <stdint.h>
 
 typedef struct
@@ -35,6 +37,9 @@ typedef struct
     uint64_t len;
     uint32_t type;
 } __attribute__((packed)) multiboot_memory_map_t;
+
+inline uint32_t v2p(const void *v) { return (uint32_t)v - KERNEL_VMA; }
+inline void *p2v(uint32_t p) { return (void *)(p + KERNEL_VMA); }
 
 void vmm_init(void);
 void vmm_map_page(uint32_t virtual_address, uint32_t physical_addres, uint32_t flags);
