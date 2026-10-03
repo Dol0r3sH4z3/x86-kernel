@@ -1,10 +1,7 @@
-#include <kernel/console.h>
-#include <arch/arch.h>
 #include "keyboard.h"
 #include "pic.h"
+#include <kernel/console.h>
 #include "vga.h"
-
-#include <stddef.h>
 
 #define INPUT_BUFFER_SIZE 256
 
@@ -108,7 +105,7 @@ void keyboard_handler_main()
 {
     uint8_t scancode = inb(0x60);
 
-    if (!console_is_interactive())
+    if (!is_interactive)
     {
         PIC_sendEOI(1);
         return;
@@ -140,7 +137,7 @@ void keyboard_handler_main()
                 if (terminal_column > terminal_input_start_column && input_buffer_idx > 0)
                 {
                     input_buffer_idx--;
-                    t_backspace();
+                    terminal_backspace();
                 }
             }
 
@@ -149,7 +146,7 @@ void keyboard_handler_main()
                 input_buffer[input_buffer_idx++] = ascii;
 
                 char str[2] = {ascii, '\0'};
-                t_print(str);
+                terminal_print(str);
             }
         }
     }

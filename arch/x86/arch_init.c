@@ -1,9 +1,9 @@
 #include <arch/arch.h>
 #include <kernel/console.h>
 #include <kernel/pmm.h>
-#include "multiboot.h"
 #include "descriptors.h"
 #include "paging.h"
+#include "vga.h"
 #include "pic.h"
 
 void arch_halt() { __asm__ volatile("cli; hlt"); }
@@ -20,19 +20,19 @@ void arch_main(multiboot_info_t *mbd_phys)
     vmm_init();
     boot_info = arch_phys_to_virt((uint32_t)mbd_phys);
 
-    arch_console_init();
-    t_print("Kernel started.\n");
+    init_term();
+    terminal_print("Kernel started.\n");
 
     if (init_gdt() == FUNCTION_STATUS_ERROR)
     {
-        t_error("Error initializing GDT.\n");
+        terminal_error("Error initializing GDT.\n");
         arch_halt();
     }
     PIC_remap(0x20, 0x28);
 
-    t_print("Initializing IDT...\n");
+    terminal_print("Initializing IDT...\n");
     init_idt();
-    t_print("IDT Initialized successfully\n");
+    terminal_print("IDT Initialized successfully\n");
 
     kernel_main();
 }
@@ -41,7 +41,7 @@ void arch_memory_init()
 {
     if (!(boot_info->flags & (1 << 6)))
     {
-        t_error("[ERROR] GRUB didn't provide memory map.\n");
+        terminal_error("[ERROR] GRUB didn't provide memory map.\n");
         arch_halt();
     }
 

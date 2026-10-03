@@ -1,48 +1,43 @@
-#include <arch/arch.h>
 #include "vga.h"
+#include <kernel/console.h>
 
 #define VGA_WIDTH 80
 #define VGA_HEIGHT 25
 #define VGA_MEMORY 0xC00B8000
 
-typedef enum
+size_t strlen(const char *str, size_t maxlen)
 {
-    VGA_COLOR_BLACK = 0,
-    VGA_COLOR_BLUE = 1,
-    VGA_COLOR_GREEN = 2,
-    VGA_COLOR_CYAN = 3,
-    VGA_COLOR_RED = 4,
-    VGA_COLOR_MAGENTA = 5,
-    VGA_COLOR_BROWN = 6,
-    VGA_COLOR_LIGHT_GREY = 7,
-    VGA_COLOR_DARK_GREY = 8,
-    VGA_COLOR_LIGHT_BLUE = 9,
-    VGA_COLOR_LIGHT_GREEN = 10,
-    VGA_COLOR_LIGHT_CYAN = 11,
-    VGA_COLOR_LIGHT_RED = 12,
-    VGA_COLOR_LIGHT_MAGENTA = 13,
-    VGA_COLOR_LIGHT_BROWN = 14,
-    VGA_COLOR_WHITE = 15,
-} vga_color_t;
-
-static inline uint8_t vga_entry_color(vga_color_t fg, vga_color_t bg)
-{
-    return fg | bg << 4;
+    size_t len = 0;
+    while (len < maxlen && str[len] != '\0')
+    {
+        len++;
+    }
+    return len;
 }
 
-static inline uint16_t vga_entry(unsigned char uc, uint8_t color)
+bool strcmp(const char *src, const char *cmp)
 {
-    return (uint16_t)uc | (uint16_t)color << 8;
+    size_t i = 0;
+
+    while (src[i] == cmp[i])
+    {
+        if (src[i] == '\0')
+        {
+            return true;
+        }
+        i++;
+    }
+
+    return false;
 }
+size_t terminal_input_start_column = 2;
 
-static size_t terminal_input_start_column = 2;
-static size_t terminal_column;
-
-static uint8_t terminal_color;
-static size_t terminal_row;
+size_t terminal_row;
+size_t terminal_column;
+uint8_t terminal_color;
 static uint16_t *terminal_buffer = (uint16_t *)VGA_MEMORY;
 
-void arch_console_init()
+void init_term(void)
 {
     terminal_row = 0;
     terminal_column = 0;
@@ -58,62 +53,69 @@ void arch_console_init()
     }
 }
 
-void arch_colsole_putc(char c)
+void terminal_setcolor(uint8_t color)
+{
+    terminal_color = color;
+}
+
+void terminal_putentryat(char c, uint8_t color, size_t x, size_t y)
+{
+    const size_t index = y * VGA_WIDTH + x;
+    terminal_buffer[index] = vga_entry(c, color);
+}
+
+void terminal_putchar(char c)
 {
     if (c == '\n')
     {
         terminal_column = 0;
         if (++terminal_row == VGA_HEIGHT)
         {
-            t_scroll();
+            terminal_scroll();
             terminal_row = VGA_HEIGHT - 1;
         }
         return;
     }
-    t_putentryat(c, terminal_color, terminal_column, terminal_row);
+    terminal_putentryat(c, terminal_color, terminal_column, terminal_row);
     if (++terminal_column == VGA_WIDTH)
     {
         terminal_column = 0;
         if (++terminal_row == VGA_HEIGHT)
         {
-            t_scroll();
+            terminal_scroll();
             terminal_row = VGA_HEIGHT - 1;
         }
     }
 }
 
-void arch_console_set_color(arch_color_t c)
+void terminal_write(const char *data, size_t size)
 {
-    switch (c)
+    for (size_t i = 0; i < size; i++)
     {
-    case COLOR_DEFAULT:
-        terminal_color = VGA_COLOR_WHITE;
-        break;
-
-    case COLOR_GREEN:
-        terminal_color = VGA_COLOR_GREEN;
-        break;
-
-    case COLOR_RED:
-        terminal_color = VGA_COLOR_RED;
-        break;
-
-    case COLOR_YELLOW:
-        terminal_color = VGA_COLOR_BROWN;
-        break;
-
-    default:
-        break;
+        terminal_putchar(data[i]);
     }
-};
-
-void t_putentryat(char c, uint8_t color, size_t x, size_t y)
-{
-    const size_t index = y * VGA_WIDTH + x;
-    terminal_buffer[index] = vga_entry(c, color);
 }
 
-void t_scroll()
+void terminal_print(const char *data)
+{
+    terminal_write(data, strlen(data, 4096));
+}
+
+void terminal_error(const char *data)
+{
+    terminal_setcolor(VGA_COLOR_RED);
+    terminal_print(data);
+    terminal_setcolor(VGA_COLOR_WHITE);
+}
+
+void terminal_warn(const char *data)
+{
+    terminal_setcolor(VGA_COLOR_BROWN);
+    terminal_print(data);
+    terminal_setcolor(VGA_COLOR_WHITE);
+}
+
+void terminal_scroll()
 {
     for (size_t y = 1; y < VGA_HEIGHT; y++)
     {
@@ -133,9 +135,9 @@ void t_scroll()
     }
 }
 
-void t_backspace(void)
+void terminal_backspace(void)
 {
-    if (terminal_column <= terminal_input_start_column)
+    if (is_interactive && terminal_column <= terminal_input_start_column)
     {
         return;
     }
@@ -157,7 +159,41 @@ void t_backspace(void)
         terminal_column--;
     }
 
-    t_putentryat(' ', terminal_color, terminal_column, terminal_row);
+    terminal_putentryat(' ', terminal_color, terminal_column, terminal_row);
 }
 
-void arch_console_mark_input_start(void) { terminal_input_start_column = terminal_column; };
+void terminal_print_hex(uint32_t data)
+{
+    static const char hex_digits[] = "0123456789ABCDEF";
+
+    terminal_print("0x");
+
+    for (int i = 28; i >= 0; i -= 4)
+    {
+        uint8_t nibble = (data >> i) & 0xF;
+        terminal_putchar(hex_digits[nibble]);
+    }
+}
+
+void execute_command(const char *cmd)
+{
+    terminal_putchar('\n');
+
+    if (strcmp(cmd, "help"))
+    {
+        terminal_print("Available commands: help, clear\n");
+    }
+    else if (strcmp(cmd, "clear"))
+    {
+        init_term();
+    }
+    else if (cmd[0] != '\0')
+    {
+        terminal_print("Unknown command: ");
+        terminal_print(cmd);
+        terminal_putchar('\n');
+    }
+
+    terminal_print("> ");
+    terminal_input_start_column = terminal_column;
+}
