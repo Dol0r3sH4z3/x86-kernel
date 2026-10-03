@@ -1,14 +1,14 @@
 #include <kernel/slab.h>
 #include <kernel/pmm.h>
+#include <kernel/console.h>
+#include <arch/arch.h>
 #include "paging.h"
-#include "vga.h"
 
 #define SLAB_LEVELS 7
-#define SLAB_HEAP_BASE 0x40000000u
 
-static const uint32_t class_sizes[SLAB_LEVELS] = {32, 64, 128, 256, 512, 1024, 2048};
+static const size_t class_sizes[SLAB_LEVELS] = {32, 64, 128, 256, 512, 1024, 2048};
 static Slab *partial[SLAB_LEVELS];
-static uint32_t slab_next_virt = SLAB_HEAP_BASE;
+static uintptr_t slab_next_virt = SLAB_HEAP_BASE;
 
 void slab_init()
 {
@@ -22,24 +22,24 @@ Slab *slab_new(int idx)
 {
     if (idx < 0 || idx >= SLAB_LEVELS)
     {
-        terminal_error("Unknown chunk size!\n");
+        t_error("Unknown chunk size!\n");
         return NULL;
     }
 
-    void *phys_page = pmm_alloc_page();
-    if (phys_page == NULL)
+    phys_addr_t phys_page = pmm_alloc_page();
+    if (phys_page == 0)
     {
-        terminal_error("Cannot allocate page.\n");
+        t_error("Cannot allocate page.\n");
         return NULL;
     }
-    uint32_t virt_address = slab_next_virt;
+    uintptr_t virt_address = slab_next_virt;
     slab_next_virt += 4096;
-    vmm_map_page(virt_address, (uint32_t)phys_page, 0x2);
+    arch_map_page(virt_address, phys_page, ARCH_PAGE_WRITE);
 
     uint8_t *page = (uint8_t *)virt_address;
 
-    uint32_t size = class_sizes[idx];
-    uint32_t chunks_amount = (4096 - sizeof(Slab)) / size;
+    size_t size = class_sizes[idx];
+    size_t chunks_amount = (4096 - sizeof(Slab)) / size;
 
     Slab *slab = (Slab *)page;
     slab->cache_idx = idx;
@@ -47,7 +47,7 @@ Slab *slab_new(int idx)
     slab->next = NULL;
 
     uint8_t *cursor = page + sizeof(Slab);
-    for (uint32_t i = 0; i < chunks_amount - 1; i++)
+    for (size_t i = 0; i < chunks_amount - 1; i++)
     {
         *(void **)cursor = cursor + size;
         cursor += size;
@@ -59,12 +59,12 @@ Slab *slab_new(int idx)
     return slab;
 };
 
-void *kmalloc(uint32_t size)
+void *kmalloc(size_t size)
 {
     if (size == 0)
         return NULL;
 
-    uint32_t index = 0;
+    size_t index = 0;
     while (index < SLAB_LEVELS && class_sizes[index] < size)
         index++;
 
@@ -81,6 +81,9 @@ void *kmalloc(uint32_t size)
     if (slab->free_list == NULL)
     {
         Slab *new_slab = slab_new(index);
+        if (new_slab == NULL)
+            return NULL;
+
         slab->next = new_slab;
         slab = new_slab;
     }
@@ -96,7 +99,7 @@ void kfree(void *p)
     if (p == NULL)
         return;
 
-    Slab *base_slab = (Slab *)((uint32_t)p & ~0xFFF);
+    Slab *base_slab = (Slab *)((uintptr_t)p & ARCH_PAGE_MASK);
 
     *(void **)p = base_slab->free_list;
     base_slab->free_list = p;

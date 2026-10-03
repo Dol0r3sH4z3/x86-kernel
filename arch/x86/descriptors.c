@@ -1,5 +1,5 @@
+#include <kernel/console.h>
 #include "descriptors.h"
-#include "vga.h"
 
 #include <stdbool.h>
 
@@ -20,7 +20,7 @@ function_status_t encodeGdtEntry(uint8_t *target, struct GDT source)
     // Check the limit to make sure that it can be encoded
     if (source.limit > 0xFFFFF)
     {
-        terminal_print("GDT cannot encode limits larger than 0xFFFFF\n");
+        t_print("GDT cannot encode limits larger than 0xFFFFF\n");
         return FUNCTION_STATUS_ERROR;
     }
 
@@ -55,7 +55,7 @@ function_status_t init_gdt()
     function_status_t null_descriptor_status = encodeGdtEntry(&gdt_entries[0], source);
     if (null_descriptor_status == FUNCTION_STATUS_ERROR)
     {
-        terminal_error("Error initializing null descriptor.\n");
+        t_error("Error initializing null descriptor.\n");
         return FUNCTION_STATUS_ERROR;
     }
 
@@ -66,7 +66,7 @@ function_status_t init_gdt()
     function_status_t kernel_code_descriptor_status = encodeGdtEntry(&gdt_entries[8], source);
     if (kernel_code_descriptor_status == FUNCTION_STATUS_ERROR)
     {
-        terminal_error("Error initializing kernel code descriptor.\n");
+        t_error("Error initializing kernel code descriptor.\n");
         return FUNCTION_STATUS_ERROR;
     }
 
@@ -77,7 +77,7 @@ function_status_t init_gdt()
     function_status_t kernel_data_descriptor_status = encodeGdtEntry(&gdt_entries[16], source);
     if (kernel_data_descriptor_status == FUNCTION_STATUS_ERROR)
     {
-        terminal_error("Error initializing kernel data descriptor.\n");
+        t_error("Error initializing kernel data descriptor.\n");
         return FUNCTION_STATUS_ERROR;
     }
 
