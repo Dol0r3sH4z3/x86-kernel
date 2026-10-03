@@ -1,9 +1,9 @@
+#include <kernel/console.h>
 #include "exceptions.h"
-#include "vga.h"
 
 void exception_handler()
 {
-    terminal_error("Critical error.\n");
+    t_error("Critical error.\n");
     while (1)
     {
         __asm__ volatile("cli; hlt");
