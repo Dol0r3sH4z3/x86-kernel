@@ -134,10 +134,8 @@ void keyboard_handler_main()
 
             else if (ascii == '\b')
             {
-                extern size_t terminal_column;
-                extern size_t terminal_input_start_column;
 
-                if (terminal_column > terminal_input_start_column && input_buffer_idx > 0)
+                if (input_buffer_idx > 0)
                 {
                     input_buffer_idx--;
                     t_backspace();

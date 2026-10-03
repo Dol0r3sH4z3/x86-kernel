@@ -42,6 +42,32 @@ static uint8_t terminal_color;
 static size_t terminal_row;
 static uint16_t *terminal_buffer = (uint16_t *)VGA_MEMORY;
 
+static void t_putentryat(char c, uint8_t color, size_t x, size_t y)
+{
+    const size_t index = y * VGA_WIDTH + x;
+    terminal_buffer[index] = vga_entry(c, color);
+}
+
+static void t_scroll()
+{
+    for (size_t y = 1; y < VGA_HEIGHT; y++)
+    {
+        for (size_t x = 0; x < VGA_WIDTH; x++)
+        {
+            const size_t src_index = y * VGA_WIDTH + x;
+            const size_t dst_index = (y - 1) * VGA_WIDTH + x;
+            terminal_buffer[dst_index] = terminal_buffer[src_index];
+        }
+    }
+
+    const size_t last_row = VGA_HEIGHT - 1;
+    for (size_t x = 0; x < VGA_WIDTH; x++)
+    {
+        const size_t index = last_row * VGA_WIDTH + x;
+        terminal_buffer[index] = vga_entry(' ', terminal_color);
+    }
+}
+
 void arch_console_init()
 {
     terminal_row = 0;
@@ -58,7 +84,7 @@ void arch_console_init()
     }
 }
 
-void arch_colsole_putc(char c)
+void arch_console_putc(char c)
 {
     if (c == '\n')
     {
@@ -87,7 +113,7 @@ void arch_console_set_color(arch_color_t c)
     switch (c)
     {
     case COLOR_DEFAULT:
-        terminal_color = VGA_COLOR_WHITE;
+        terminal_color = VGA_COLOR_LIGHT_GREY;
         break;
 
     case COLOR_GREEN:
@@ -106,32 +132,6 @@ void arch_console_set_color(arch_color_t c)
         break;
     }
 };
-
-void t_putentryat(char c, uint8_t color, size_t x, size_t y)
-{
-    const size_t index = y * VGA_WIDTH + x;
-    terminal_buffer[index] = vga_entry(c, color);
-}
-
-void t_scroll()
-{
-    for (size_t y = 1; y < VGA_HEIGHT; y++)
-    {
-        for (size_t x = 0; x < VGA_WIDTH; x++)
-        {
-            const size_t src_index = y * VGA_WIDTH + x;
-            const size_t dst_index = (y - 1) * VGA_WIDTH + x;
-            terminal_buffer[dst_index] = terminal_buffer[src_index];
-        }
-    }
-
-    const size_t last_row = VGA_HEIGHT - 1;
-    for (size_t x = 0; x < VGA_WIDTH; x++)
-    {
-        const size_t index = last_row * VGA_WIDTH + x;
-        terminal_buffer[index] = vga_entry(' ', terminal_color);
-    }
-}
 
 void t_backspace(void)
 {

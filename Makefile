@@ -20,7 +20,7 @@ AC     := nasm
 CFLAGS := -std=gnu99 -ffreestanding -O2 -nostdlib -Wall -Wextra \
           -Iinclude -Iarch/$(ARCH) -MMD -MP
 
-C_SRCS  := $(wildcard kernel/*.c) $(wildcard arch/$(ARCH)/*.c)
+C_SRCS  := $(wildcard kernel/*.c) $(wildcard kernel/lib/*.c) $(wildcard arch/$(ARCH)/*.c)
 AS_SRCS := $(wildcard arch/$(ARCH)/*.s)
 OBJS    := $(C_SRCS:%.c=$(BUILD)/%.o) $(AS_SRCS:%.s=$(BUILD)/%.o)
 LDSCRIPT := arch/$(ARCH)/linker.ld

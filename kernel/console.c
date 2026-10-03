@@ -1,7 +1,6 @@
 #include <kernel/console.h>
 #include <kernel/string.h>
 #include <arch/arch.h>
-#include "vga.h"
 
 bool is_interactive = false;
 
@@ -11,9 +10,10 @@ bool console_is_interactive() { return is_interactive; }
 
 void t_print(const char *data)
 {
-    for (size_t i = 0; i < strlen(data, 4096); i++)
+    size_t len = strlen(data, 4096);
+    for (size_t i = 0; i < len; i++)
     {
-        arch_colsole_putc(data[i]);
+        arch_console_putc(data[i]);
     }
 }
 
@@ -47,13 +47,13 @@ void t_hex(uint32_t data)
     for (int i = 28; i >= 0; i -= 4)
     {
         uint8_t nibble = (data >> i) & 0xF;
-        arch_colsole_putc(hex_digits[nibble]);
+        arch_console_putc(hex_digits[nibble]);
     }
 }
 
 void execute_command(const char *cmd)
 {
-    arch_colsole_putc('\n');
+    arch_console_putc('\n');
 
     if (strcmp(cmd, "help"))
     {
@@ -67,7 +67,7 @@ void execute_command(const char *cmd)
     {
         t_print("Unknown command: ");
         t_print(cmd);
-        arch_colsole_putc('\n');
+        arch_console_putc('\n');
     }
 
     t_print("> ");
