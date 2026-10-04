@@ -2,6 +2,7 @@
 #include <kernel/console.h>
 #include <arch/arch.h>
 #include <types.h>
+#include "arch_config.h"
 
 #define MAX_ORDER 11
 
@@ -80,7 +81,7 @@ phys_addr_t pmm_alloc_page(void)
     return arch_virt_to_phys(block);
 }
 
-void pmm_free_page(void *addr)
+void pmm_free_page(phys_addr_t addr)
 {
     uintptr_t block_addr = (uintptr_t)arch_phys_to_virt((uintptr_t)addr);
     int order = 0;

@@ -2,13 +2,13 @@
 #include <kernel/pmm.h>
 #include <kernel/console.h>
 #include <arch/arch.h>
-#include "paging.h"
+#include "arch_config.h"
 
 #define SLAB_LEVELS 7
 
 static const size_t class_sizes[SLAB_LEVELS] = {32, 64, 128, 256, 512, 1024, 2048};
 static Slab *partial[SLAB_LEVELS];
-static uintptr_t slab_next_virt = SLAB_HEAP_BASE;
+static uintptr_t slab_next_virt = ARCH_HEAP_BASE;
 
 void slab_init()
 {
@@ -39,14 +39,14 @@ Slab *slab_new(int idx)
     uint8_t *page = (uint8_t *)virt_address;
 
     size_t size = class_sizes[idx];
-    size_t chunks_amount = (4096 - sizeof(Slab)) / size;
+    size_t chunks_amount = (4096 - SLAB_HEADER_SIZE) / size;
 
     Slab *slab = (Slab *)page;
     slab->cache_idx = idx;
     slab->used = 0;
     slab->next = NULL;
 
-    uint8_t *cursor = page + sizeof(Slab);
+    uint8_t *cursor = page + SLAB_HEADER_SIZE;
     for (size_t i = 0; i < chunks_amount - 1; i++)
     {
         *(void **)cursor = cursor + size;
@@ -54,7 +54,7 @@ Slab *slab_new(int idx)
     }
     *(void **)cursor = NULL;
 
-    slab->free_list = page + sizeof(Slab);
+    slab->free_list = page + SLAB_HEADER_SIZE;
 
     return slab;
 };

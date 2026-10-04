@@ -1,0 +1,7 @@
+#ifndef ARCH_CONFIG_H
+#define ARCH_CONFIG_H
+
+#define ARCH_HEAP_BASE 0x40000000u
+#define ARCH_DIRECT_MAP_LIMIT (64u * 1024 * 1024)
+
+#endif

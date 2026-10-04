@@ -4,7 +4,6 @@
 #include <stdint.h>
 #include <stddef.h>
 
-#define ARCH_DIRECT_MAP_LIMIT (64u * 1024 * 1024)
 #define ARCH_PAGE_SIZE 4096u
 #define ARCH_PAGE_MASK (~(uintptr_t)(ARCH_PAGE_SIZE - 1))
 #define ARCH_PAGE_WRITE 0x2

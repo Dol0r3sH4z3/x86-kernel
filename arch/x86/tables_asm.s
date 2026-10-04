@@ -20,9 +20,21 @@ load_gdt:
     ret
 
 extern exception_handler
+
 %macro isr_err_stub 1
+global isr_stub_%+%1
 isr_stub_%+%1:
+    push %1
+    pushad
+    
+    mov eax, esp
+    push eax
+
     call exception_handler
+    
+    add esp, 4
+    popad
+    add esp, 8
     iret
 %endmacro
 

@@ -8,6 +8,6 @@ void pmm_init(void);
 void pmm_free_region(phys_addr_t start_addr, size_t length);
 
 phys_addr_t pmm_alloc_page(void);
-void pmm_free_page(void *addr);
+void pmm_free_page(phys_addr_t addr);
 
 #endif
