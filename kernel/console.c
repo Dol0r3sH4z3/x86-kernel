@@ -38,13 +38,13 @@ void t_success(const char *data)
     arch_console_set_color(COLOR_DEFAULT);
 }
 
-void t_hex(uint32_t data)
+void t_hex(uintptr_t data)
 {
     static const char hex_digits[] = "0123456789ABCDEF";
 
     t_print("0x");
 
-    for (int i = 28; i >= 0; i -= 4)
+    for (int i = sizeof(uintptr_t) * 8 - 4; i >= 0; i -= 4)
     {
         uint8_t nibble = (data >> i) & 0xF;
         arch_console_putc(hex_digits[nibble]);

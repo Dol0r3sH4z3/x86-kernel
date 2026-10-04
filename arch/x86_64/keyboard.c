@@ -1,0 +1,156 @@
+#include <kernel/console.h>
+#include <arch/arch.h>
+#include "keyboard.h"
+#include "pic.h"
+#include "vga.h"
+
+#include <stddef.h>
+
+#define INPUT_BUFFER_SIZE 256
+
+char input_buffer[INPUT_BUFFER_SIZE];
+size_t input_buffer_idx = 0;
+
+const char kbdus[128] = {
+    0,
+    27,
+    '1',
+    '2',
+    '3',
+    '4',
+    '5',
+    '6',
+    '7',
+    '8',
+    '9',
+    '0',
+    '-',
+    '=',
+    '\b',
+    '\t',
+    'q',
+    'w',
+    'e',
+    'r',
+    't',
+    'y',
+    'u',
+    'i',
+    'o',
+    'p',
+    '[',
+    ']',
+    '\n',
+    0,
+    'a',
+    's',
+    'd',
+    'f',
+    'g',
+    'h',
+    'j',
+    'k',
+    'l',
+    ';',
+    '\'',
+    '`',
+    0,
+    '\\',
+    'z',
+    'x',
+    'c',
+    'v',
+    'b',
+    'n',
+    'm',
+    ',',
+    '.',
+    '/',
+    0,
+    '*',
+    0,
+    ' ',
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    '-',
+    0,
+    0,
+    0,
+    '+',
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+};
+
+void keyboard_handler_main()
+{
+    uint8_t scancode = inb(0x60);
+
+    if (!console_is_interactive())
+    {
+        PIC_sendEOI(1);
+        return;
+    }
+
+    if (scancode & 0x80)
+    {
+        // RELEASED
+    }
+    else
+    {
+        // PRESSED
+        if (scancode < 128)
+        {
+            char ascii = kbdus[scancode];
+
+            if (ascii == '\n')
+            {
+                input_buffer[input_buffer_idx] = '\0';
+                execute_command(input_buffer);
+                input_buffer_idx = 0;
+            }
+
+            else if (ascii == '\b')
+            {
+
+                if (input_buffer_idx > 0)
+                {
+                    input_buffer_idx--;
+                    t_backspace();
+                }
+            }
+
+            else if (ascii != 0)
+            {
+                input_buffer[input_buffer_idx++] = ascii;
+
+                char str[2] = {ascii, '\0'};
+                t_print(str);
+            }
+        }
+    }
+
+    PIC_sendEOI(1);
+}

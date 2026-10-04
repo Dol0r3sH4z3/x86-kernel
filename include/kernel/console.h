@@ -12,7 +12,7 @@ void t_print(const char *data);
 void t_error(const char *data);
 void t_success(const char *data);
 void t_warn(const char *data);
-void t_hex(uint32_t data);
+void t_hex(uintptr_t data);
 
 void execute_command(const char *cmd);
 
