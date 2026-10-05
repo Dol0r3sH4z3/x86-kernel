@@ -51,10 +51,10 @@ void arch_unmap_page(uintptr_t virt)
         return;
 
     uint32_t *page_table = (uint32_t *)(0xFFC00000 + (pd_idx * 4096));
-    uint32_t physs = page_table[pt_idx] & ~0xFFF;
+    uint32_t phys = page_table[pt_idx] & ~0xFFF;
 
     page_table[pt_idx] &= ~0x00000001;
-    pmm_free_page((void *)physs);
+    pmm_free_page((phys_addr_t)phys);
 
     __asm__ volatile("invlpg (%0)" ::"r"(virt) : "memory");
 }

@@ -4,19 +4,22 @@
 
 void exception_handler(registers_t *regs)
 {
-    t_error("Kernel panic: ");
+    t_error("Kernel panic! Vector: ");
+    t_hex(regs->int_no);
+    t_print(" EIP: ");
+    t_hex(regs->eip);
+
     if (regs->int_no == 14)
     {
-        t_error("Page fault!");
-        uint32_t faulting_address;
-        __asm__ volatile("mov %%cr2, %0" : "=r"(faulting_address));
-        t_error(" Address: ");
-        t_hex(faulting_address);
-        t_print("\n");
-        arch_halt();
+        uint32_t cr2;
+        __asm__ volatile("mov %%cr2, %0" : "=r"(cr2));
+        t_error("\nPage fault at: ");
+        t_hex(cr2);
     }
     else if (regs->int_no == 13)
     {
         t_error("General Protection fault!");
-        }
+    }
+
+    arch_halt();
 }
