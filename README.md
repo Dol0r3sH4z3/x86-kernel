@@ -1,4 +1,4 @@
-# my_kernel
+# x86-kernel
 
 A hobby x86 kernel written in C and assembly, with a clean split between
 architecture-specific code (`arch/`) and portable kernel code (`kernel/`).
